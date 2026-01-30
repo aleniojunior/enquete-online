@@ -1,62 +1,58 @@
-import os
+from flask import Flask, render_template, request, redirect
 import sqlite3
-from flask import Flask, render_template, request, redirect, make_response
+import os
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'))
+app = Flask(__name__)
 
-# ================= BANCO =================
+# ================== BANCO ==================
 
 def conectar():
-    conn = sqlite3.connect(os.path.join(BASE_DIR, 'enquete.db'))
+    conn = sqlite3.connect('enquete.db')
     conn.row_factory = sqlite3.Row
     return conn
 
 def criar_banco():
     conn = conectar()
-    c = conn.cursor()
-    c.execute('''
+    conn.execute('''
         CREATE TABLE IF NOT EXISTS votos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            opcao TEXT NOT NULL,
+            opcao TEXT,
             cidade TEXT,
-            bairro TEXT,
-            ip TEXT
+            bairro TEXT
         )
     ''')
     conn.commit()
     conn.close()
 
-# ================= ROTAS =================
+# 🔥 FUNÇÃO TEMPORÁRIA PARA APAGAR BANCO
+def resetar_banco():
+    if os.path.exists("enquete.db"):
+        os.remove("enquete.db")
+
+# ================== ROTAS ==================
 
 @app.route('/')
 def index():
-    ja_votou = request.cookies.get('votou')
-    return render_template('index.html', ja_votou=ja_votou)
+    return render_template('voto.html')
 
 
 @app.route('/votar', methods=['POST'])
 def votar():
-    if request.cookies.get('votou'):
-        return redirect('/resultado')
-
     opcao = request.form['opcao']
     cidade = request.form['cidade'].strip().upper()
     bairro = request.form['bairro'].strip().upper()
 
-    ip = request.remote_addr
-
     conn = conectar()
     conn.execute(
-        'INSERT INTO votos (opcao, cidade, bairro, ip) VALUES (?, ?, ?, ?)',
-        (opcao, cidade, bairro, ip)
+        'INSERT INTO votos (opcao, cidade, bairro) VALUES (?, ?, ?)',
+        (opcao, cidade, bairro)
     )
     conn.commit()
     conn.close()
 
-    resp = make_response(redirect('/resultado'))
-    resp.set_cookie('votou', 'sim', max_age=60*60*24*30)
-    return resp
+    return redirect('/resultado')
+
+
 @app.route('/resultado')
 def resultado():
     conn = conectar()
@@ -109,15 +105,9 @@ def resultado():
         cidades_valores=cidades_valores
     )
 
-
-
-# ================= INICIAR =================
+# ================== INICIAR APP ==================
 
 if __name__ == '__main__':
-    criar_banco()
-    app.run(debug=True, port=5002)
-
-
-if __name__ == '__main__':
-    criar_banco()
+    resetar_banco()   # 🧨 APAGA O BANCO ANTIGO (USAR SÓ UMA VEZ)
+    criar_banco()     # cria banco novo vazio
     app.run(host='0.0.0.0', port=5002)
