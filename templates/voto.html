@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block conteudo %}
+
+<div class="card p-4 shadow-sm">
+    <h4 class="mb-3">Enquete</h4>
+
+    <form method="POST" action="/votar">
+        <div class="mb-3">
+            <label class="form-label">Seu voto:</label>
+            <select name="opcao" class="form-select" required>
+                <option value="Candidato A">Candidato A</option>
+                <option value="Candidato B">Candidato B</option>
+                <option value="Candidato C">Candidato C</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Cidade</label>
+            <input type="text" name="cidade" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Bairro</label>
+            <input type="text" name="bairro" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Votar</button>
+    </form>
+</div>
+
+{% endblock %}
