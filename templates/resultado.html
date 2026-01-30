@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block conteudo %}
+
+<div class="card shadow-sm p-4">
+    <h4 class="mb-4 text-center">Resultado da Enquete</h4>
+
+    <!-- GRÁFICO DE VOTOS -->
+    <h5 class="text-center">Intenção de Voto</h5>
+    <div style="max-width: 400px; margin: auto;">
+        <canvas id="graficoPizza"></canvas>
+    </div>
+
+    <hr>
+
+    <!-- GRÁFICO DE BAIRROS -->
+    <h5 class="text-center mt-4">Bairros com mais participantes</h5>
+    <div style="max-width: 500px; margin: auto;">
+        <canvas id="graficoBairros"></canvas>
+    </div>
+
+    <hr>
+
+    <!-- GRÁFICO DE CIDADES -->
+    <h5 class="text-center mt-4">Cidades com mais participantes</h5>
+    <div style="max-width: 500px; margin: auto;">
+        <canvas id="graficoCidades"></canvas>
+    </div>
+
+    <hr>
+
+    <!-- LISTA DETALHADA -->
+    {% for r in resultados %}
+        <div class="mb-2">
+            <strong>{{ r.opcao }}</strong> — {{ r.total }} votos ({{ r.porcentagem }}%)
+        </div>
+    {% endfor %}
+
+    <p class="mt-3 text-center"><strong>Total de votos:</strong> {{ total_geral }}</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 🍕 Gráfico de Pizza — Candidatos
+new Chart(document.getElementById('graficoPizza'), {
+    type: 'pie',
+    data: {
+        labels: {{ labels|tojson }},
+        datasets: [{
+            data: {{ valores|tojson }},
+            backgroundColor: [
+                '#0d6efd',
+                '#198754',
+                '#dc3545',
+                '#ffc107',
+                '#6f42c1',
+                '#20c997',
+                '#fd7e14'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+
+// 🏘️ Gráfico de Bairros
+new Chart(document.getElementById('graficoBairros'), {
+    type: 'bar',
+    data: {
+        labels: {{ bairros_labels|tojson }},
+        datasets: [{
+            data: {{ bairros_valores|tojson }}
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        responsive: true
+    }
+});
+
+// 🏙️ Gráfico de Cidades
+new Chart(document.getElementById('graficoCidades'), {
+    type: 'bar',
+    data: {
+        labels: {{ cidades_labels|tojson }},
+        datasets: [{
+            data: {{ cidades_valores|tojson }}
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        responsive: true
+    }
+});
+</script>
+
+{% endblock %}

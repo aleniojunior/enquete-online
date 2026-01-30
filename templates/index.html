@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block conteudo %}
+
+<div class="card shadow-sm p-4">
+    <h4 class="mb-3">Se a eleição fosse hoje, em quem você votaria?</h4>
+
+    {% if ja_votou %}
+        <div class="alert alert-info">
+            Você já participou da enquete.
+        </div>
+        <a href="/resultado" class="btn btn-primary">Ver Resultado</a>
+    {% else %}
+        <form method="POST" action="/votar">
+
+            <div class="mb-3">
+                <label class="form-label">Sua cidade</label>
+                <input type="text" name="cidade" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Seu bairro</label>
+                <input type="text" name="bairro" class="form-control" required>
+            </div>
+
+            <hr>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="opcao" value="Candidato A" required>
+                <label class="form-check-label">Candidato A</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="opcao" value="Candidato B">
+                <label class="form-check-label">Candidato B</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="opcao" value="Candidato C">
+                <label class="form-check-label">Candidato C</label>
+            </div>
+
+            <button type="submit" class="btn btn-success mt-3">Votar</button>
+        </form>
+    {% endif %}
+</div>
+
+{% endblock %}
