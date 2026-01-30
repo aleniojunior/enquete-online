@@ -1,11 +1,8 @@
 from flask import Flask, render_template, request, redirect, session
 import sqlite3
-import os
 
 app = Flask(__name__)
 app.secret_key = "chave-fixa-enquete-2026"
-
-RESETAR_BANCO = True  # 🔥 DEIXE TRUE SÓ AGORA
 
 # ================= BANCO =================
 
@@ -13,12 +10,6 @@ def conectar():
     conn = sqlite3.connect('enquete.db')
     conn.row_factory = sqlite3.Row
     return conn
-
-def resetar_banco():
-    caminho = os.path.join(os.getcwd(), "enquete.db")
-    if os.path.exists(caminho):
-        os.remove(caminho)
-        print("BANCO APAGADO COM SUCESSO")
 
 def criar_banco():
     conn = conectar()
@@ -33,9 +24,6 @@ def criar_banco():
     ''')
     conn.commit()
     conn.close()
-
-if RESETAR_BANCO:
-    resetar_banco()
 
 criar_banco()
 
