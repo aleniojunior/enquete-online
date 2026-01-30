@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session
 import sqlite3
 import os
 
 app = Flask(__name__)
+app.secret_key = "chave-secreta-fixa-aqui-123"  # impede reset de sessão a cada reinício
 
 # ================== BANCO ==================
 
@@ -18,13 +19,14 @@ def criar_banco():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             opcao TEXT,
             cidade TEXT,
-            bairro TEXT
+            bairro TEXT,
+            ip TEXT
         )
     ''')
     conn.commit()
     conn.close()
 
-# 🔥 FUNÇÃO TEMPORÁRIA PARA APAGAR BANCO
+# 🧨 RESET TEMPORÁRIO DO BANCO (USAR SÓ AGORA)
 def resetar_banco():
     if os.path.exists("enquete.db"):
         os.remove("enquete.db")
@@ -38,18 +40,37 @@ def index():
 
 @app.route('/votar', methods=['POST'])
 def votar():
+    # Bloqueio por sessão
+    if 'votou' in session:
+        return redirect('/resultado')
+
+    # Pega IP real mesmo atrás do Render
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+
+    conn = conectar()
+
+    # Bloqueio por IP
+    ja_votou = conn.execute(
+        'SELECT id FROM votos WHERE ip = ?',
+        (ip,)
+    ).fetchone()
+
+    if ja_votou:
+        conn.close()
+        return redirect('/resultado')
+
     opcao = request.form['opcao']
     cidade = request.form['cidade'].strip().upper()
     bairro = request.form['bairro'].strip().upper()
 
-    conn = conectar()
     conn.execute(
-        'INSERT INTO votos (opcao, cidade, bairro) VALUES (?, ?, ?)',
-        (opcao, cidade, bairro)
+        'INSERT INTO votos (opcao, cidade, bairro, ip) VALUES (?, ?, ?, ?)',
+        (opcao, cidade, bairro, ip)
     )
     conn.commit()
     conn.close()
 
+    session['votou'] = True
     return redirect('/resultado')
 
 
@@ -108,6 +129,6 @@ def resultado():
 # ================== INICIAR APP ==================
 
 if __name__ == '__main__':
-    resetar_banco()   # 🧨 APAGA O BANCO ANTIGO (USAR SÓ UMA VEZ)
-    criar_banco()     # cria banco novo vazio
+    resetar_banco()   # 🧨 ZERA O BANCO AGORA (REMOVER DEPOIS)
+    criar_banco()
     app.run(host='0.0.0.0', port=5002)
