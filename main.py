@@ -3,14 +3,22 @@ import sqlite3
 import os
 
 app = Flask(__name__)
-app.secret_key = "chave-secreta-fixa-aqui-123"  # impede reset de sessão a cada reinício
+app.secret_key = "chave-fixa-enquete-2026"
 
-# ================== BANCO ==================
+RESETAR_BANCO = True  # 🔥 DEIXE TRUE SÓ AGORA
+
+# ================= BANCO =================
 
 def conectar():
     conn = sqlite3.connect('enquete.db')
     conn.row_factory = sqlite3.Row
     return conn
+
+def resetar_banco():
+    caminho = os.path.join(os.getcwd(), "enquete.db")
+    if os.path.exists(caminho):
+        os.remove(caminho)
+        print("BANCO APAGADO COM SUCESSO")
 
 def criar_banco():
     conn = conectar()
@@ -26,13 +34,12 @@ def criar_banco():
     conn.commit()
     conn.close()
 
-# 🧨 RESET TEMPORÁRIO DO BANCO (USAR SÓ AGORA)
-def resetar_banco():
-    caminho = os.path.join(os.getcwd(), "enquete.db")
-    if os.path.exists(caminho):
-        os.remove(caminho)
+if RESETAR_BANCO:
+    resetar_banco()
 
-# ================== ROTAS ==================
+criar_banco()
+
+# ================= ROTAS =================
 
 @app.route('/')
 def index():
@@ -41,16 +48,13 @@ def index():
 
 @app.route('/votar', methods=['POST'])
 def votar():
-    # Bloqueio por sessão
     if 'votou' in session:
         return redirect('/resultado')
 
-    # Pega IP real mesmo atrás do Render
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
 
     conn = conectar()
 
-    # Bloqueio por IP
     ja_votou = conn.execute(
         'SELECT id FROM votos WHERE ip = ?',
         (ip,)
@@ -68,6 +72,7 @@ def votar():
         'INSERT INTO votos (opcao, cidade, bairro, ip) VALUES (?, ?, ?, ?)',
         (opcao, cidade, bairro, ip)
     )
+
     conn.commit()
     conn.close()
 
@@ -109,27 +114,18 @@ def resultado():
         labels.append(d['opcao'])
         valores.append(d['total'])
 
-    bairros_labels = [b['bairro'] for b in bairros]
-    bairros_valores = [b['total'] for b in bairros]
-
-    cidades_labels = [c['cidade'] for c in cidades]
-    cidades_valores = [c['total'] for c in cidades]
-
     return render_template(
         'resultado.html',
         resultados=resultados,
         total_geral=total_geral,
         labels=labels,
         valores=valores,
-        bairros_labels=bairros_labels,
-        bairros_valores=bairros_valores,
-        cidades_labels=cidades_labels,
-        cidades_valores=cidades_valores
+        bairros_labels=[b['bairro'] for b in bairros],
+        bairros_valores=[b['total'] for b in bairros],
+        cidades_labels=[c['cidade'] for c in cidades],
+        cidades_valores=[c['total'] for c in cidades]
     )
 
-# ================== INICIAR APP ==================
 
 if __name__ == '__main__':
-    resetar_banco()   # 🧨 ZERA O BANCO AGORA (REMOVER DEPOIS)
-    criar_banco()
     app.run(host='0.0.0.0', port=5002)
