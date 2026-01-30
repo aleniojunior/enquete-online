@@ -28,8 +28,9 @@ def criar_banco():
 
 # 🧨 RESET TEMPORÁRIO DO BANCO (USAR SÓ AGORA)
 def resetar_banco():
-    if os.path.exists("enquete.db"):
-        os.remove("enquete.db")
+    caminho = os.path.join(os.getcwd(), "enquete.db")
+    if os.path.exists(caminho):
+        os.remove(caminho)
 
 # ================== ROTAS ==================
 

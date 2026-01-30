@@ -1,31 +1,36 @@
-{% extends "base.html" %}
-{% block conteudo %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enquete</title>
+</head>
+<body>
+    <h2>Enquete de Intenção de Voto (NÃO OFICIAL)</h2>
 
-<div class="card p-4 shadow-sm">
-    <h4 class="mb-3">Enquete</h4>
+    <form action="/votar" method="post">
+        <p><strong>Escolha seu candidato:</strong></p>
 
-    <form method="POST" action="/votar">
-        <div class="mb-3">
-            <label class="form-label">Seu voto:</label>
-            <select name="opcao" class="form-select" required>
-                <option value="Cicero Lucena">Cicero Lucena</option>
-                <option value="Efraim Filho">Efraim Filho</option>
-                <option value="Lucas Ribeiro">Lucas Ribeiro C</option>
-            </select>
-        </div>
+        <label>
+            <input type="radio" name="opcao" value="Cicero Lucena" required>
+            Cicero Lucena
+        </label><br>
 
-        <div class="mb-3">
-            <label class="form-label">Cidade</label>
-            <input type="text" name="cidade" class="form-control" required>
-        </div>
+        <label>
+            <input type="radio" name="opcao" value="Efraim Filho">
+            Efraim Filho
+        </label><br>
 
-        <div class="mb-3">
-            <label class="form-label">Bairro</label>
-            <input type="text" name="bairro" class="form-control" required>
-        </div>
+        <label>
+            <input type="radio" name="opcao" value="Lucas Ribeiro">
+            Lucas Ribeiro
+        </label><br><br>
 
-        <button type="submit" class="btn btn-primary w-100">Votar</button>
+        <label>Cidade:</label><br>
+        <input type="text" name="cidade" required><br><br>
+
+        <label>Bairro:</label><br>
+        <input type="text" name="bairro" required><br><br>
+
+        <button type="submit">Votar</button>
     </form>
-</div>
-
-{% endblock %}
+</body>
+</html>
