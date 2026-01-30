@@ -1,31 +1,34 @@
 from flask import Flask, render_template, request, redirect, session
-import sqlite3
+import psycopg2
+import os
 
 app = Flask(__name__)
 app.secret_key = "chave-fixa-enquete-2026"
 
-# ================= BANCO =================
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# ================= BANCO POSTGRES =================
 
 def conectar():
-    conn = sqlite3.connect('enquete.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+    return psycopg2.connect(DATABASE_URL)
 
-def criar_banco():
+def criar_tabela():
     conn = conectar()
-    conn.execute('''
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS votos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             opcao TEXT,
             cidade TEXT,
             bairro TEXT,
             ip TEXT
         )
-    ''')
+    """)
     conn.commit()
+    cur.close()
     conn.close()
 
-criar_banco()
+criar_tabela()
 
 # ================= ROTAS =================
 
@@ -36,19 +39,20 @@ def index():
 
 @app.route('/votar', methods=['POST'])
 def votar():
+    # Bloqueio por sessão
     if 'votou' in session:
         return redirect('/resultado')
 
+    # Pega IP real na Render
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
 
     conn = conectar()
+    cur = conn.cursor()
 
-    ja_votou = conn.execute(
-        'SELECT id FROM votos WHERE ip = ?',
-        (ip,)
-    ).fetchone()
-
-    if ja_votou:
+    # Bloqueio por IP
+    cur.execute("SELECT id FROM votos WHERE ip = %s", (ip,))
+    if cur.fetchone():
+        cur.close()
         conn.close()
         return redirect('/resultado')
 
@@ -56,12 +60,13 @@ def votar():
     cidade = request.form['cidade'].strip().upper()
     bairro = request.form['bairro'].strip().upper()
 
-    conn.execute(
-        'INSERT INTO votos (opcao, cidade, bairro, ip) VALUES (?, ?, ?, ?)',
+    cur.execute(
+        "INSERT INTO votos (opcao, cidade, bairro, ip) VALUES (%s, %s, %s, %s)",
         (opcao, cidade, bairro, ip)
     )
 
     conn.commit()
+    cur.close()
     conn.close()
 
     session['votou'] = True
@@ -71,36 +76,35 @@ def votar():
 @app.route('/resultado')
 def resultado():
     conn = conectar()
+    cur = conn.cursor()
 
-    votos = conn.execute(
-        'SELECT opcao, COUNT(*) as total FROM votos GROUP BY opcao'
-    ).fetchall()
+    cur.execute("SELECT opcao, COUNT(*) FROM votos GROUP BY opcao")
+    votos = cur.fetchall()
 
-    bairros = conn.execute(
-        'SELECT bairro, COUNT(*) as total FROM votos GROUP BY bairro ORDER BY total DESC LIMIT 5'
-    ).fetchall()
+    cur.execute("SELECT bairro, COUNT(*) FROM votos GROUP BY bairro ORDER BY COUNT(*) DESC LIMIT 5")
+    bairros = cur.fetchall()
 
-    cidades = conn.execute(
-        'SELECT cidade, COUNT(*) as total FROM votos GROUP BY cidade ORDER BY total DESC LIMIT 5'
-    ).fetchall()
+    cur.execute("SELECT cidade, COUNT(*) FROM votos GROUP BY cidade ORDER BY COUNT(*) DESC LIMIT 5")
+    cidades = cur.fetchall()
 
+    cur.close()
     conn.close()
 
-    total_geral = sum([d['total'] for d in votos]) or 1
+    total_geral = sum(v[1] for v in votos) or 1
 
     resultados = []
     labels = []
     valores = []
 
-    for d in votos:
-        porcentagem = round((d['total'] / total_geral) * 100, 1)
+    for opcao, total in votos:
+        porcentagem = round((total / total_geral) * 100, 1)
         resultados.append({
-            'opcao': d['opcao'],
-            'total': d['total'],
+            'opcao': opcao,
+            'total': total,
             'porcentagem': porcentagem
         })
-        labels.append(d['opcao'])
-        valores.append(d['total'])
+        labels.append(opcao)
+        valores.append(total)
 
     return render_template(
         'resultado.html',
@@ -108,10 +112,10 @@ def resultado():
         total_geral=total_geral,
         labels=labels,
         valores=valores,
-        bairros_labels=[b['bairro'] for b in bairros],
-        bairros_valores=[b['total'] for b in bairros],
-        cidades_labels=[c['cidade'] for c in cidades],
-        cidades_valores=[c['total'] for c in cidades]
+        bairros_labels=[b[0] for b in bairros],
+        bairros_valores=[b[1] for b in bairros],
+        cidades_labels=[c[0] for c in cidades],
+        cidades_valores=[c[1] for c in cidades]
     )
 
 
